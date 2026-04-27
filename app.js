@@ -1,12 +1,13 @@
 
-let isLogin = false;
+let isLogin = localStorage.getItem("isLogin") === "true";
+
+
+
 
 function login() {
     fetch("http://localhost:8080/post/login", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
             username: document.getElementById("username").value,
             password: document.getElementById("password").value
@@ -14,11 +15,22 @@ function login() {
     })
         .then(res => res.text())
         .then(data => {
-            alert(data);
-            if(data === "登录成功") {
-                isLogin = true;
+
+            console.log("返回:", data);
+
+            // 👇 只要不是“登录失败”，就当 token
+            if(data !== "登录失败") {
+                localStorage.setItem("token", data);
+                alert("登录成功");
+            } else {
+                alert("登录失败");
             }
         });
+}
+
+function logout() {
+    localStorage.removeItem("token");
+    alert("已退出登录");
 }
 
 // 加载文章列表
@@ -43,7 +55,9 @@ function loadPosts() {
 // 发布文章
 function addPost() {
 
-    if(!isLogin) {
+    let token = localStorage.getItem("token");
+
+    if(!token) {
         alert("请先登录！");
         return;
     }
@@ -51,23 +65,46 @@ function addPost() {
     fetch("http://localhost:8080/post/add", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "token": token   // 👈 带上 token
         },
         body: JSON.stringify({
             title: document.getElementById("title").value,
             content: document.getElementById("content").value
         })
     })
-        .then(() => loadPosts());
+    .then(res => res.text())
+    .then(data => {
+        if (data === "添加成功") {
+            loadPosts();
+        } else {
+            alert(data);
+        }
+    });
 }
 
 // 删除文章
 function deletePost(id) {
+    let token = localStorage.getItem("token");
+
+    if(!token) {
+        alert("请先登录！");
+        return;
+    }
+
     fetch(`http://localhost:8080/post/delete/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: {
+            "token": token
+        }
     })
-        .then(() => {
-            loadPosts(); // 删除后刷新列表
+        .then(res => res.text())
+        .then(data => {
+            if (data === "删除成功") {
+                loadPosts(); // 删除后刷新列表
+            } else {
+                alert(data);
+            }
         });
 }
 
