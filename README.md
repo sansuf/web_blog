@@ -1,1 +1,1 @@
-my first web project by AI
+first web project
